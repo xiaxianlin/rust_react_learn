@@ -1,0 +1,24 @@
+{
+    "name": "big-react-wasm",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "directories": {
+        "example": "examples"
+    },
+    "scripts": {
+        "build:react": "wasm-pack build packages/react --out-dir pkg/react --out-name jsx-dev-runtime",
+        "build:react-dom": "wasm-pack build packages/react-dom --out-dir pkg/react-dom --out-name index",
+        "build": "npm run build:react && npm run build:react-dom"
+    },
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@babel/core": "^7.18.6",
+        "@babel/plugin-transform-react-jsx": "^7.17.12",
+        "@babel/preset-env": "^7.18.6",
+        "@babel/preset-react": "^7.18.6",
+        "react": "file://./dist/react",
+        "react-dom": "file://./dist/react-dom"
+    }
+}
