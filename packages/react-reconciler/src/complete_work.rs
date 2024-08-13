@@ -100,7 +100,7 @@ impl CompleteWork {
         match tag {
             WorkTag::FunctionComponent => {
                 log!(
-                    "complete unknown fibler.tag {:?}",
+                    "complete unknown fiber.tag {:?}",
                     work_in_progress.clone().borrow().tag
                 );
                 None

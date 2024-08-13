@@ -24,21 +24,17 @@ impl HostConfig for ReactDomHostConfig {
     }
 
     fn append_initial_child(&self, parent: Rc<dyn Any>, child: Rc<dyn Any>) {
-        let parent = parent.clone().downcast::<Node>().unwrap();
-        let child = child.clone().downcast::<Node>().unwrap();
-        match parent.append_child(&child) {
+        let p = parent.clone().downcast::<Node>().unwrap();
+        let c = child.clone().downcast::<Node>().unwrap();
+        match p.append_child(&c) {
             Ok(_) => {
-                log!(
-                    "append_initial_child successfully ele {:?} {:?}",
-                    parent,
-                    child
-                );
+                log!("append_initial_child successfully ele {:?} {:?}", p, c);
             }
             Err(_) => todo!(),
         }
     }
 
-    fn append_child_to_container(&self, _child: Rc<dyn Any>, _parent: Rc<dyn Any>) {
-        todo!()
+    fn append_child_to_container(&self, child: Rc<dyn Any>, parent: Rc<dyn Any>) {
+        self.append_initial_child(parent, child)
     }
 }

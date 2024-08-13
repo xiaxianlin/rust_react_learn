@@ -20,7 +20,7 @@ fn place_single_child(
 
 fn reconcile_single_element(
     return_fiber: Rc<RefCell<FiberNode>>,
-    current_first_child: Option<Rc<RefCell<FiberNode>>>,
+    _current_first_child: Option<Rc<RefCell<FiberNode>>>,
     element: Option<Rc<JsValue>>,
 ) -> Rc<RefCell<FiberNode>> {
     let mut fiber = FiberNode::create_fiber_from_element(element.unwrap());
@@ -30,7 +30,7 @@ fn reconcile_single_element(
 
 fn reconcile_single_text_node(
     return_fiber: Rc<RefCell<FiberNode>>,
-    current_first_child: Option<Rc<RefCell<FiberNode>>>,
+    _current_first_child: Option<Rc<RefCell<FiberNode>>>,
     content: Option<Rc<JsValue>>,
 ) -> Rc<RefCell<FiberNode>> {
     let props = Object::new();
@@ -61,7 +61,6 @@ fn _reconcile_child_fibers(
                 should_track_effect,
             ));
         } else if new_child.is_object() {
-            log!("reconcile_child_fibers: {:?}", new_child);
             let _typeof = Rc::clone(&derive_from_js_value(new_child.clone(), "$$typeof").unwrap())
                 .as_string()
                 .unwrap();

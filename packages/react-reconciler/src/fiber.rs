@@ -68,7 +68,7 @@ impl FiberNode {
     }
 
     pub fn enqueue_update(&mut self, update: Update) {
-        let mut update_queue = match &self.update_queue {
+        let update_queue = match &self.update_queue {
             None => {
                 return;
             }
@@ -144,13 +144,13 @@ impl FiberNode {
 }
 
 pub struct FiberRootNode {
-    pub container: Rc<JsValue>,
+    pub container: Rc<dyn Any>,
     pub current: Rc<RefCell<FiberNode>>,
     pub finished_work: Option<Rc<RefCell<FiberNode>>>,
 }
 
 impl FiberRootNode {
-    pub fn new(container: Rc<JsValue>, host_root_fiber: Rc<RefCell<FiberNode>>) -> Self {
+    pub fn new(container: Rc<dyn Any>, host_root_fiber: Rc<RefCell<FiberNode>>) -> Self {
         Self {
             container,
             current: host_root_fiber,
@@ -161,7 +161,7 @@ impl FiberRootNode {
 
 impl Debug for FiberRootNode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut root = self.current.clone().borrow().alternate.clone();
+        let root = self.current.clone().borrow().alternate.clone();
         Ok(if let Some(node) = root {
             let mut queue = VecDeque::new();
             queue.push_back(Rc::clone(&node));

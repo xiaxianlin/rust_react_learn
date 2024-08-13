@@ -8,6 +8,7 @@ use work_tags::WorkTag;
 
 mod begin_work;
 mod child_fiber;
+mod commit_work;
 mod complete_work;
 pub mod fiber;
 mod fiber_flags;
@@ -31,7 +32,7 @@ impl Reconciler {
         Reconciler { host_config }
     }
 
-    pub fn create_container(&self, container: &JsValue) -> Rc<RefCell<FiberRootNode>> {
+    pub fn create_container(&self, container: Rc<dyn Any>) -> Rc<RefCell<FiberRootNode>> {
         let host_root_fiber = Rc::new(RefCell::new(FiberNode::new(WorkTag::HostRoot, None, None)));
         host_root_fiber
             .clone()
@@ -39,7 +40,7 @@ impl Reconciler {
             .initialize_update_queue();
 
         let root = Rc::new(RefCell::new(FiberRootNode::new(
-            Rc::new(container.clone()),
+            container.clone(),
             host_root_fiber.clone(),
         )));
         let r1 = root.clone();

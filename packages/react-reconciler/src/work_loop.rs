@@ -1,12 +1,13 @@
 use std::{cell::RefCell, rc::Rc};
 
-use shared::log;
 use wasm_bindgen::JsValue;
 
 use crate::{
     begin_work::begin_work,
+    commit_work::CommitWork,
     complete_work::CompleteWork,
     fiber::{FiberNode, FiberRootNode, StateNode},
+    fiber_flags::get_mutation_mask,
     work_tags::WorkTag,
     HostConfig,
 };
@@ -29,10 +30,6 @@ impl WorkLoop {
         if root.is_none() {
             return;
         }
-        log!(
-            "schedule_update_on_fiber - root container: {:?}",
-            root.clone().unwrap().clone().borrow().container
-        );
         self.ensure_root_is_scheduled(root.unwrap());
     }
 
@@ -61,20 +58,11 @@ impl WorkLoop {
         let fiber_node = fiber_node_rc.borrow();
 
         if fiber_node.tag == WorkTag::HostRoot {
-            match fiber_node.state_node.clone() {
-                None => {}
-                Some(state_node) => {
-                    return match &*state_node {
-                        StateNode::FiberRootNode(fiber_root_node) => {
-                            Some(Rc::clone(&fiber_root_node))
-                        }
-                        StateNode::Element(_) => todo!(),
-                    }
+            if let Some(state_node) = fiber_node.state_node.clone() {
+                if let StateNode::FiberRootNode(fiber_root_node) = &*(state_node.clone()) {
+                    return Some(Rc::clone(&fiber_root_node));
                 }
             }
-
-            // let Some(StateNode::FiberRootNode(fiber_root_node)) = fiber_node.state_node.clone();
-            // return Some(Rc::clone(&fiber_root_node));
         }
 
         None
@@ -91,7 +79,39 @@ impl WorkLoop {
             self.work_loop();
             break;
         }
-        log!("{:?}", *root.clone().borrow());
+
+        let finished_work = root
+            .clone()
+            .borrow()
+            .current
+            .clone()
+            .borrow()
+            .alternate
+            .clone();
+
+        root.clone().borrow_mut().finished_work = finished_work;
+        self.commit_root(root);
+    }
+
+    fn commit_root(&self, root: Rc<RefCell<FiberRootNode>>) {
+        let cloned = root.clone();
+        if cloned.borrow().finished_work.is_none() {
+            return;
+        }
+
+        let finished_work = cloned.borrow().finished_work.clone().unwrap();
+        cloned.borrow_mut().finished_work = None;
+
+        let subtree_has_effect =
+            get_mutation_mask().contains(finished_work.clone().borrow().subtree_flags.clone());
+        let root_has_effect =
+            get_mutation_mask().contains(finished_work.clone().borrow().flags.clone());
+
+        let commit_work = &mut CommitWork::new(self.complete_work.host_config.clone());
+        if subtree_has_effect || root_has_effect {
+            commit_work.commit_mutation_effects(finished_work.clone());
+        }
+        cloned.borrow_mut().current = finished_work.clone();
     }
 
     fn prepare_fresh_stack(&mut self, root: Rc<RefCell<FiberRootNode>>) {
@@ -104,10 +124,6 @@ impl WorkLoop {
 
     fn work_loop(&mut self) {
         while self.work_in_progress.is_some() {
-            log!(
-                "work_loop - work_in_progress {:?}",
-                self.work_in_progress.clone().unwrap().clone().borrow().tag
-            );
             self.perform_unit_of_work(self.work_in_progress.clone().unwrap());
         }
     }
@@ -118,10 +134,6 @@ impl WorkLoop {
         if next.is_none() {
             self.complete_unit_of_work(fiber.clone());
         } else {
-            log!(
-                "perform_unit_of_work - next {:?}",
-                next.clone().unwrap().clone().borrow().tag
-            );
             self.work_in_progress = Some(next.unwrap());
         }
     }
@@ -147,7 +159,7 @@ impl WorkLoop {
             let _return = node.clone().unwrap().clone().borrow()._return.clone();
             if _return.is_none() {
                 node = None;
-                self.work_in_progress = None;
+                self.work_in_progress = node;
                 break;
             } else {
                 node = _return;
