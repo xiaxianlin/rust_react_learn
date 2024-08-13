@@ -174,32 +174,42 @@ impl Debug for FiberRootNode {
                         let _ = write!(f, "{:?}", current.borrow()._type.as_ref().unwrap());
                     }
                     WorkTag::HostRoot => {
-                        let _ = write!(f, "{:?}", WorkTag::HostRoot);
-                    }
-                    WorkTag::HostComponent => {
                         let _ = write!(
                             f,
-                            "{:?}",
-                            current
-                                .borrow()
+                            "{:?}(subtreeFlags:{:?})",
+                            WorkTag::HostRoot,
+                            current_ref.subtree_flags
+                        );
+                    }
+                    WorkTag::HostComponent => {
+                        let current_borrowed = current.borrow();
+                        let _ = write!(
+                            f,
+                            "{:?}(flags:{:?}, subtreeFlags:{:?})",
+                            current_borrowed
                                 ._type
                                 .as_ref()
                                 .unwrap()
                                 .as_string()
-                                .unwrap()
+                                .unwrap(),
+                            current_borrowed.flags,
+                            current_borrowed.subtree_flags
                         );
                     }
                     WorkTag::HostText => {
+                        let current_borrowed = current.borrow();
                         let _ = write!(
                             f,
-                            "{:?}",
+                            "{:?}(state_node:{:?}, flags:{:?})",
+                            current_borrowed.tag,
                             Reflect::get(
-                                current.borrow().pending_props.as_ref().unwrap(),
+                                current_borrowed.pending_props.as_ref().unwrap(),
                                 &JsValue::from_str("content"),
                             )
                             .unwrap()
                             .as_string()
                             .unwrap(),
+                            current_borrowed.flags
                         );
                     }
                 };

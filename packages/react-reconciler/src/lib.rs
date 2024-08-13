@@ -8,6 +8,7 @@ use work_tags::WorkTag;
 
 mod begin_work;
 mod child_fiber;
+mod complete_work;
 pub mod fiber;
 mod fiber_flags;
 mod update_queue;
@@ -50,7 +51,7 @@ impl Reconciler {
         let host_root_fiber = Rc::clone(&root).borrow().current.clone();
         let update = create_update(element);
         enqueue_update(host_root_fiber.borrow(), update);
-        
+
         let mut work_loop = WorkLoop::new(self.host_config.clone());
         work_loop.schedule_update_on_fiber(host_root_fiber);
     }
