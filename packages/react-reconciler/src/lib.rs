@@ -1,7 +1,8 @@
 use std::{any::Any, cell::RefCell, rc::Rc};
 
 use fiber::{FiberNode, FiberRootNode, StateNode};
-use update_queue::{create_update, enqueue_update};
+use fiber_hooks::WORK_LOOP;
+use update_queue::{create_update, create_update_queue, enqueue_update};
 use wasm_bindgen::prelude::*;
 use work_loop::WorkLoop;
 use work_tags::WorkTag;
@@ -35,10 +36,7 @@ impl Reconciler {
 
     pub fn create_container(&self, container: Rc<dyn Any>) -> Rc<RefCell<FiberRootNode>> {
         let host_root_fiber = Rc::new(RefCell::new(FiberNode::new(WorkTag::HostRoot, None, None)));
-        host_root_fiber
-            .clone()
-            .borrow_mut()
-            .initialize_update_queue();
+        host_root_fiber.clone().borrow_mut().update_queue = Some(create_update_queue());
 
         let root = Rc::new(RefCell::new(FiberRootNode::new(
             container.clone(),
@@ -52,9 +50,18 @@ impl Reconciler {
     pub fn update_container(&self, element: Rc<JsValue>, root: Rc<RefCell<FiberRootNode>>) {
         let host_root_fiber = Rc::clone(&root).borrow().current.clone();
         let update = create_update(element);
-        enqueue_update(host_root_fiber.borrow(), update);
+        enqueue_update(
+            host_root_fiber.borrow().update_queue.clone().unwrap(),
+            update,
+        );
 
-        let mut work_loop = WorkLoop::new(self.host_config.clone());
-        work_loop.schedule_update_on_fiber(host_root_fiber);
+        let mut work_loop = Rc::new(RefCell::new(WorkLoop::new(self.host_config.clone())));
+        unsafe {
+            WORK_LOOP = Some(work_loop.clone());
+        }
+        work_loop
+            .clone()
+            .borrow()
+            .schedule_update_on_fiber(host_root_fiber);
     }
 }

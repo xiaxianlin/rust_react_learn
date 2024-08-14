@@ -3,33 +3,15 @@ const fs = require('fs')
 
 const cwd = process.cwd()
 
-const isTest = process.argv[2] === '--test'
-
-execSync('rm -rf dist')
-
 execSync(
-    `wasm-pack build packages/react --out-dir ${cwd}/dist/react --out-name jsx-dev-runtime ${
-        isTest ? '--target nodejs' : ''
-    }`
+    `wasm-pack build packages/react --out-dir ${cwd}/dist/react --out-name jsx-dev-runtime`
 )
 
 execSync(
-    `wasm-pack build packages/react --out-dir ${cwd}/dist/react --out-name index ${
-        isTest ? '--target nodejs' : ''
-    }`
+    `wasm-pack build packages/react --out-dir ${cwd}/dist/react --out-name index`
 )
-
-if (isTest) {
-    execSync(
-        `wasm-pack build packages/react-noop --out-dir ${cwd}/dist/react-noop --out-name index ${
-            isTest ? '--target nodejs' : ''
-        }`
-    )
-}
 execSync(
-    `wasm-pack build packages/react-dom --out-dir ${cwd}/dist/react-dom --out-name index ${
-        isTest ? '--target nodejs' : ''
-    }`
+    `wasm-pack build packages/react-dom --out-dir ${cwd}/dist/react-dom --out-name index`
 )
 
 // modify react/package.json
@@ -45,29 +27,10 @@ packageJson.files.push(
 )
 fs.writeFileSync(packageJsonFilename, JSON.stringify(packageJson))
 
-if (isTest) {
-    // modify react-noop/index_bg.js
-    const reactNoopIndexFilename = isTest
-        ? `${cwd}/dist/react-noop/index.js`
-        : `${cwd}/dist/react-noop/index_bg.js`
-    const reactNoopIndexBgData = fs.readFileSync(reactNoopIndexFilename)
-    fs.writeFileSync(
-        reactNoopIndexFilename,
-        (isTest
-            ? 'const {updateDispatcher} = require("react");\n'
-            : 'import {updateDispatcher} from "react";\n') +
-            reactNoopIndexBgData
-    )
-}
-
 // modify react-dom/index_bg.js
-const reactDomIndexFilename = isTest
-    ? `${cwd}/dist/react-dom/index.js`
-    : `${cwd}/dist/react-dom/index_bg.js`
-const reactDomIndexBgData = fs.readFileSync(reactDomIndexFilename)
+const reactDomIndexBgFilename = `${cwd}/dist/react-dom/index_bg.js`
+const reactDomIndexBgData = fs.readFileSync(reactDomIndexBgFilename)
 fs.writeFileSync(
-    reactDomIndexFilename,
-    (isTest
-        ? 'const {updateDispatcher} = require("react");\n'
-        : 'import {updateDispatcher} from "react";\n') + reactDomIndexBgData
+    reactDomIndexBgFilename,
+    'import { updateDispatcher } from "react";\n' + reactDomIndexBgData
 )

@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use shared::{derive_from_js_value, log, REACT_ELEMENT_TYPE};
+use shared::{derive_from_js_value, REACT_ELEMENT_TYPE};
 use wasm_bindgen::JsValue;
 use web_sys::js_sys::{Object, Reflect};
 
@@ -77,8 +77,7 @@ fn _reconcile_child_fibers(
         }
     }
 
-    log!("Unsupported child type when reconcile");
-    return None;
+    todo!("Unsupported child type when reconcile");
 }
 
 pub fn reconcile_child_fibers(

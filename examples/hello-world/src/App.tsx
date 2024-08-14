@@ -1,10 +1,11 @@
-// App.tsx
-import dayjs from 'dayjs'
+import { useState } from 'react'
 
 function App() {
+    const [name, setName] = useState(() => 'ayou')
+
     return (
-        <div>
-            <Comp>{dayjs().format()}</Comp>
+        <div onClick={() => setName('ayouayou')}>
+            <Comp>{name}</Comp>
         </div>
     )
 }
