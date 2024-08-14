@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "dayjs": "^1.11.10",
+    "dayjs": "^1.11.12",
     "react": "file://../../packages/react/pkg/react",
     "react-dom": "file://../../packages/react-dom/pkg/react-dom",
     "vite-plugin-wasm": "^3.3.0"

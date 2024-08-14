@@ -35,7 +35,6 @@ impl CommitWork {
                     let sibling = self
                         .next_effect
                         .clone()
-                        .clone()
                         .unwrap()
                         .borrow()
                         .sibling

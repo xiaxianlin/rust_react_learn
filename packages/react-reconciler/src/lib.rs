@@ -12,6 +12,7 @@ mod commit_work;
 mod complete_work;
 pub mod fiber;
 mod fiber_flags;
+mod fiber_hooks;
 mod update_queue;
 mod work_loop;
 mod work_tags;

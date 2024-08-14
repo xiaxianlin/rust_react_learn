@@ -1,6 +1,5 @@
 use std::{any::Any, cell::RefCell, rc::Rc};
 
-use shared::log;
 use wasm_bindgen::JsValue;
 use web_sys::js_sys::Reflect;
 
@@ -33,14 +32,16 @@ impl CompleteWork {
                 )
             } else if n.borrow().child.is_some() {
                 let n = node_unwrap.clone();
-                let borrowed = n.borrow_mut();
-                borrowed
-                    .child
-                    .as_ref()
-                    .unwrap()
-                    .clone()
-                    .borrow_mut()
-                    ._return = Some(node_unwrap.clone());
+                {
+                    let borrowed = n.borrow_mut();
+                    borrowed
+                        .child
+                        .as_ref()
+                        .unwrap()
+                        .clone()
+                        .borrow_mut()
+                        ._return = Some(node_unwrap.clone());
+                }
                 node = node_unwrap.clone().borrow().child.clone();
                 continue;
             }
@@ -49,25 +50,40 @@ impl CompleteWork {
                 return;
             }
 
-            while node_unwrap.borrow().sibling.clone().is_none() {
-                if node_unwrap.borrow()._return.is_none()
+            while node
+                .clone()
+                .unwrap()
+                .clone()
+                .borrow()
+                .sibling
+                .clone()
+                .is_none()
+            {
+                let node_cloned = node.clone().unwrap().clone();
+                if node_cloned.borrow()._return.is_none()
                     || Rc::ptr_eq(
-                        &node_unwrap.borrow()._return.as_ref().unwrap(),
+                        &node_cloned.borrow()._return.as_ref().unwrap(),
                         &work_in_progress,
                     )
                 {
                     return;
                 }
-                node_unwrap
-                    .borrow_mut()
+                node = node_cloned.borrow()._return.clone();
+            }
+
+            {
+                node.clone()
+                    .unwrap()
+                    .borrow()
                     .sibling
                     .clone()
                     .unwrap()
                     .clone()
                     .borrow_mut()
                     ._return = node_unwrap.borrow()._return.clone();
-                node = node_unwrap.clone().borrow().child.clone();
             }
+
+            node = node.clone().unwrap().borrow().sibling.clone();
         }
     }
 
@@ -99,10 +115,7 @@ impl CompleteWork {
         let tag = { work_in_progress.clone().borrow().tag.clone() };
         match tag {
             WorkTag::FunctionComponent => {
-                log!(
-                    "complete unknown fiber.tag {:?}",
-                    work_in_progress.clone().borrow().tag
-                );
+                self.bubble_properties(work_in_progress.clone());
                 None
             }
             WorkTag::HostRoot => {
