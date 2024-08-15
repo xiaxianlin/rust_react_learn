@@ -41,20 +41,17 @@ impl WorkLoop {
         fiber: Rc<RefCell<FiberNode>>,
     ) -> Option<Rc<RefCell<FiberRootNode>>> {
         let mut node = Rc::clone(&fiber);
-        let mut parent = Rc::clone(&fiber).borrow()._return.clone();
 
+        let mut parent = Rc::clone(&fiber).borrow()._return.clone();
         while parent.is_some() {
             node = parent.clone().unwrap();
-            let rc = Rc::clone(&parent.unwrap());
-            let rc_ref = rc.borrow();
-            let next = match rc_ref._return.as_ref() {
+            parent = match parent.clone().unwrap().borrow()._return.as_ref() {
                 None => None,
                 Some(node) => {
                     let a = node.clone();
                     Some(a)
                 }
             };
-            parent = next;
         }
 
         let fiber_node_rc = Rc::clone(&node);
@@ -126,10 +123,6 @@ impl WorkLoop {
 
     fn prepare_fresh_stack(&self, root: Rc<RefCell<FiberRootNode>>) {
         let root = Rc::clone(&root);
-        // self.work_in_progress = Some(FiberNode::crate_work_in_progress(
-        //     root.borrow().current.clone(),
-        //     Rc::new(JsValue::null()),
-        // ));
         unsafe {
             WORK_IN_PROGRESS = Some(FiberNode::crate_work_in_progress(
                 root.borrow().current.clone(),
@@ -149,9 +142,6 @@ impl WorkLoop {
     }
 
     fn work_loop(&self) -> Result<(), JsValue> {
-        // while self.work_in_progress.is_some() {
-        //     self.perform_unit_of_work(self.work_in_progress.clone().unwrap())?;
-        // }
         unsafe {
             while WORK_IN_PROGRESS.is_some() {
                 self.perform_unit_of_work(WORK_IN_PROGRESS.clone().unwrap())?;
@@ -166,7 +156,6 @@ impl WorkLoop {
         if next.is_none() {
             self.complete_unit_of_work(fiber.clone());
         } else {
-            // self.work_in_progress = Some(next.unwrap());
             unsafe { WORK_IN_PROGRESS = Some(next.unwrap()) };
         }
         Ok(())

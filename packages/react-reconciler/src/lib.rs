@@ -47,15 +47,19 @@ impl Reconciler {
         root.clone()
     }
 
-    pub fn update_container(&self, element: Rc<JsValue>, root: Rc<RefCell<FiberRootNode>>) {
+    pub fn update_container(
+        &self,
+        element: Rc<JsValue>,
+        root: Rc<RefCell<FiberRootNode>>,
+    ) -> JsValue {
         let host_root_fiber = Rc::clone(&root).borrow().current.clone();
-        let update = create_update(element);
+        let update = create_update(element.clone());
         enqueue_update(
             host_root_fiber.borrow().update_queue.clone().unwrap(),
             update,
         );
 
-        let mut work_loop = Rc::new(RefCell::new(WorkLoop::new(self.host_config.clone())));
+        let work_loop = Rc::new(RefCell::new(WorkLoop::new(self.host_config.clone())));
         unsafe {
             WORK_LOOP = Some(work_loop.clone());
         }
@@ -63,5 +67,6 @@ impl Reconciler {
             .clone()
             .borrow()
             .schedule_update_on_fiber(host_root_fiber);
+        (&*element.clone()).clone()
     }
 }
