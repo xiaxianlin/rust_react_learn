@@ -1,13 +1,21 @@
 import { useState } from 'react'
 
-function App() {
-    const [name, setName] = useState(() => 'ayou')
+let n = 0
 
-    return (
-        <div onClick={() => setName('ayouayou')}>
-            <Comp>{name}</Comp>
-        </div>
-    )
+function App() {
+    const [name, setName] = useState(() => false)
+    const [age, setAge] = useState(() => 10)
+
+    if (n === 0) {
+        let tid = setTimeout(() => {
+            n++
+            setName(true)
+            setAge(11)
+            clearTimeout(tid)
+        }, 1000)
+    }
+
+    return name ? <Comp>{name + age}</Comp> : 'N/A'
 }
 
 function Comp({ children }) {

@@ -16,14 +16,12 @@ use crate::{
 static mut WORK_IN_PROGRESS: Option<Rc<RefCell<FiberNode>>> = None;
 
 pub struct WorkLoop {
-    // work_in_progress: Option<Rc<RefCell<FiberNode>>>,
     complete_work: CompleteWork,
 }
 
 impl WorkLoop {
     pub fn new(host_config: Rc<dyn HostConfig>) -> Self {
         Self {
-            // work_in_progress: None,
             complete_work: CompleteWork::new(host_config),
         }
     }
@@ -41,17 +39,20 @@ impl WorkLoop {
         fiber: Rc<RefCell<FiberNode>>,
     ) -> Option<Rc<RefCell<FiberRootNode>>> {
         let mut node = Rc::clone(&fiber);
-
         let mut parent = Rc::clone(&fiber).borrow()._return.clone();
+
         while parent.is_some() {
             node = parent.clone().unwrap();
-            parent = match parent.clone().unwrap().borrow()._return.as_ref() {
+            let rc = Rc::clone(&parent.unwrap());
+            let rc_ref = rc.borrow();
+            let next = match rc_ref._return.as_ref() {
                 None => None,
                 Some(node) => {
                     let a = node.clone();
                     Some(a)
                 }
             };
+            parent = next;
         }
 
         let fiber_node_rc = Rc::clone(&node);
@@ -87,6 +88,8 @@ impl WorkLoop {
             };
         }
 
+        log!("{:?}", *root.clone().borrow());
+
         let finished_work = root
             .clone()
             .borrow()
@@ -117,16 +120,18 @@ impl WorkLoop {
         let commit_work = &mut CommitWork::new(self.complete_work.host_config.clone());
         if subtree_has_effect || root_has_effect {
             commit_work.commit_mutation_effects(finished_work.clone());
+            cloned.borrow_mut().current = finished_work.clone();
+        } else {
+            cloned.borrow_mut().current = finished_work.clone();
         }
-        cloned.borrow_mut().current = finished_work.clone();
     }
 
     fn prepare_fresh_stack(&self, root: Rc<RefCell<FiberRootNode>>) {
         let root = Rc::clone(&root);
         unsafe {
-            WORK_IN_PROGRESS = Some(FiberNode::crate_work_in_progress(
+            WORK_IN_PROGRESS = Some(FiberNode::create_work_in_progress(
                 root.borrow().current.clone(),
-                Rc::new(JsValue::null()),
+                JsValue::null(),
             ));
             log!(
                 "prepare_fresh_stack {:?} {:?}",
@@ -152,6 +157,8 @@ impl WorkLoop {
 
     fn perform_unit_of_work(&self, fiber: Rc<RefCell<FiberNode>>) -> Result<(), JsValue> {
         let next = begin_work(fiber.clone())?;
+        let pending_props = { fiber.clone().borrow().pending_props.clone() };
+        fiber.clone().borrow_mut().memoized_props = pending_props;
 
         if next.is_none() {
             self.complete_unit_of_work(fiber.clone());
@@ -169,7 +176,6 @@ impl WorkLoop {
                 .complete_work(node.clone().unwrap().clone());
 
             if next.is_some() {
-                // self.work_in_progress = next.clone();
                 unsafe {
                     WORK_IN_PROGRESS = next.clone();
                 }
@@ -178,7 +184,6 @@ impl WorkLoop {
 
             let sibling = node.clone().unwrap().clone().borrow().sibling.clone();
             if sibling.is_some() {
-                // self.work_in_progress = next.clone();
                 unsafe {
                     WORK_IN_PROGRESS = next.clone();
                 }
@@ -188,14 +193,12 @@ impl WorkLoop {
             let _return = node.clone().unwrap().clone().borrow()._return.clone();
             if _return.is_none() {
                 node = None;
-                // self.work_in_progress = node;
                 unsafe {
                     WORK_IN_PROGRESS = node;
                 }
                 break;
             } else {
                 node = _return;
-                // self.work_in_progress = node.clone();
                 unsafe {
                     WORK_IN_PROGRESS = node.clone();
                 }
